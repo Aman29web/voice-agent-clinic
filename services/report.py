@@ -16,7 +16,7 @@ from email.message import EmailMessage
 from typing import Any
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-
+# for readability, we don't try to match all valid email addresses; just the common ones.
 
 def email_configured() -> bool:
     return bool(os.getenv("SMTP_USER") and os.getenv("SMTP_PASSWORD"))
