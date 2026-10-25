@@ -141,7 +141,7 @@ class OpikCallTracer:
         self.sdk_scoring = sdk_scoring
         self.judge_model = judge_model
         self.flush_timeout = flush_timeout
-        # Each stage has its own bound, so a slow analysis or judge still leaves time to log the
+        # Each stage has its own is bound, so a slow analysis or judge still leaves time to log the
         # call. One shared deadline would drop the whole trace for exactly the slow calls.
         self.callback_timeout = callback_timeout
         self.scoring_timeout = scoring_timeout
