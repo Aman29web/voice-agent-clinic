@@ -1,0 +1,317 @@
+"""Simulated appointment booking.
+
+Stands in for a real scheduling system. Slot availability is generated deterministically from
+the date, so a demo reproduces exactly; bookings are held in memory for the life of the process.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import re
+import threading
+import uuid
+from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta
+from typing import Any
+from zoneinfo import ZoneInfo
+
+CLINIC_TZ = ZoneInfo("Asia/Kolkata")
+
+SPECIALTIES: dict[str, str] = {
+    "endocrinology": "Dr. Kavita Menon",
+    "general medicine": "Dr. Arjun Mehta",
+    "diabetology": "Dr. Kavita Menon",
+    "nutrition": "Ms. Pooja Desai",
+}
+DEFAULT_SPECIALTY = "endocrinology"
+
+WINDOWS: dict[str, tuple[time, time]] = {
+    # Morning ends at noon: a patient who asks for "morning" does not mean 12:00.
+    "morning": (time(9, 30), time(12, 0)),
+    "afternoon": (time(14, 0), time(17, 0)),
+    "evening": (time(17, 0), time(19, 30)),
+}
+
+SLOT_MINUTES = 30
+BOOKING_HORIZON_DAYS = 21
+MIN_LEAD_TIME = timedelta(hours=2)
+
+_WEEKDAYS = {
+    "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+    "friday": 4, "saturday": 5, "sunday": 6,
+}
+
+
+class SchedulingError(Exception):
+    """Base for scheduling failures the agent is expected to recover from conversationally."""
+
+
+class SlotUnavailable(SchedulingError):
+    def __init__(self, message: str, alternatives: list["Slot"]) -> None:
+        super().__init__(message)
+        self.alternatives = alternatives
+
+
+@dataclass(frozen=True)
+class Slot:
+    specialty: str
+    clinician: str
+    start: datetime
+
+    @property
+    def key(self) -> str:
+        return f"{self.specialty}|{self.start.isoformat()}"
+
+    @property
+    def spoken(self) -> str:
+        # Built by hand: "%-I" (unpadded hour) is glibc-only and raises ValueError on Windows.
+        return f"{self.start:%A %d %B} at {self.start.hour % 12 or 12}:{self.start:%M %p}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "specialty": self.specialty,
+            "clinician": self.clinician,
+            "start": self.start.isoformat(),
+            "time": f"{self.start:%H:%M}",
+            "spoken": self.spoken,
+        }
+
+
+@dataclass(frozen=True)
+class Booking:
+    confirmation_id: str
+    patient_id: str
+    patient_name: str
+    slot: Slot
+    booked_at: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "confirmation_id": self.confirmation_id,
+            "patient_id": self.patient_id,
+            "patient_name": self.patient_name,
+            "booked_at": self.booked_at.isoformat(),
+            **self.slot.to_dict(),
+        }
+
+
+_lock = threading.Lock()
+_bookings: dict[str, Booking] = {}
+
+
+def now() -> datetime:
+    return datetime.now(tz=CLINIC_TZ)
+
+
+def reset() -> None:
+    """Test helper — clears in-process bookings."""
+    with _lock:
+        _bookings.clear()
+
+
+def resolve_date(text: str, *, today: date | None = None) -> date:
+    """Turn whatever the model passed into a real date.
+
+    The prompt asks for YYYY-MM-DD, but models routinely pass 'tomorrow' or a weekday name,
+    so those are handled rather than rejected.
+    """
+    today = today or now().date()
+    raw = (text or "").strip().lower()
+    if not raw:
+        raise SchedulingError("No date was provided.")
+
+    try:
+        return date.fromisoformat(raw)
+    except ValueError:
+        pass
+
+    if raw in {"today", "aaj"}:
+        return today
+    if raw in {"tomorrow", "kal"}:
+        return today + timedelta(days=1)
+    if raw in {"day after tomorrow", "overmorrow", "parso"}:
+        return today + timedelta(days=2)
+
+    for name, index in _WEEKDAYS.items():
+        if name in raw:
+            ahead = (index - today.weekday()) % 7 or 7
+            return today + timedelta(days=ahead)
+
+    raise SchedulingError(f"Could not understand the date {text!r}.")
+
+
+def check_bookable(day: date) -> None:
+    """Reject days outside the booking window, so the agent is told why rather than 'nothing free'."""
+    today = now().date()
+    if day < today:
+        raise SchedulingError(f"{day.isoformat()} is in the past.")
+    if day > today + timedelta(days=BOOKING_HORIZON_DAYS):
+        raise SchedulingError(
+            f"Appointments can only be booked up to {BOOKING_HORIZON_DAYS} days ahead."
+        )
+
+
+def resolve_time(text: str) -> time:
+    """'10:30', '14:00', '10:30 am', '2 pm' -> time. The prompt asks for HH:MM."""
+    raw = (text or "").strip().lower().replace(".", "")
+    match = re.fullmatch(r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)?", raw)
+    if not match:
+        raise SchedulingError(f"Could not understand the time {text!r}. Use HH:MM.")
+    hour, minute, meridiem = int(match.group(1)), int(match.group(2) or 0), match.group(3)
+    if meridiem == "pm" and hour < 12:
+        hour += 12
+    elif meridiem == "am" and hour == 12:
+        hour = 0
+    if hour > 23 or minute > 59:
+        raise SchedulingError(f"Could not understand the time {text!r}. Use HH:MM.")
+    return time(hour, minute)
+
+
+def _is_open(day: date) -> bool:
+    return day.weekday() < 6  # closed Sundays
+
+
+def _slot_is_free(slot: Slot) -> bool:
+    """Deterministic pseudo-availability, stable across runs for the same slot."""
+    digest = hashlib.sha256(slot.key.encode()).digest()[0]
+    return digest % 100 >= 35  # ~35% of the grid is pre-booked
+
+
+def _grid(specialty: str, day: date, window: str | None) -> list[Slot]:
+    clinician = SPECIALTIES[specialty]
+    windows = [WINDOWS[window]] if window else list(WINDOWS.values())
+    slots: list[Slot] = []
+    for start_t, end_t in windows:
+        cursor = datetime.combine(day, start_t, tzinfo=CLINIC_TZ)
+        end = datetime.combine(day, end_t, tzinfo=CLINIC_TZ)
+        while cursor < end:
+            slots.append(Slot(specialty=specialty, clinician=clinician, start=cursor))
+            cursor += timedelta(minutes=SLOT_MINUTES)
+    return slots
+
+
+def normalise_specialty(specialty: str | None) -> str:
+    if not specialty:
+        return DEFAULT_SPECIALTY
+    key = specialty.strip().lower()
+    if key in SPECIALTIES:
+        return key
+    return next((k for k in SPECIALTIES if k in key or key in k), DEFAULT_SPECIALTY)
+
+
+def normalise_window(window: str | None) -> str | None:
+    if not window:
+        return None
+    key = window.strip().lower()
+    for known in WINDOWS:
+        if known in key:
+            return known
+    if "am" in key or "early" in key:
+        return "morning"
+    if "pm" in key or "late" in key:
+        return "evening"
+    return None
+
+
+def available_slots(
+    specialty: str | None = None,
+    on: date | None = None,
+    window: str | None = None,
+    *,
+    limit: int = 3,
+) -> list[Slot]:
+    """Free slots, searched forward from `on` until `limit` are found or the horizon is reached."""
+    spec = normalise_specialty(specialty)
+    win = normalise_window(window)
+    current = now()
+    day = on or current.date()
+    horizon = current.date() + timedelta(days=BOOKING_HORIZON_DAYS)
+
+    found: list[Slot] = []
+    with _lock:
+        taken = set(_bookings)
+        while day <= horizon and len(found) < limit:
+            if _is_open(day):
+                for slot in _grid(spec, day, win):
+                    if (
+                        slot.start - current < MIN_LEAD_TIME
+                        or slot.key in taken
+                        or not _slot_is_free(slot)
+                    ):
+                        continue
+                    found.append(slot)
+                    if len(found) >= limit:
+                        break
+            day += timedelta(days=1)
+    return found
+
+
+def book(
+    patient_id: str,
+    patient_name: str,
+    specialty: str | None,
+    preferred_date: str,
+    preferred_window: str | None = None,
+    preferred_time: str | None = None,
+) -> Booking:
+    """Book the exact time the patient agreed to, or else the first free slot in the window.
+
+    Raises SlotUnavailable (carrying alternatives) rather than silently shifting the appointment —
+    the agent must offer the alternative and get the patient to agree.
+    """
+    spec = normalise_specialty(specialty)
+    win = normalise_window(preferred_window)
+    day = resolve_date(preferred_date)
+    current = now()
+    check_bookable(day)
+
+    if not _is_open(day):
+        raise SlotUnavailable(
+            f"The clinic is closed on {day.strftime('%A %d %B')}.",
+            available_slots(spec, on=day, window=win, limit=3),
+        )
+
+    if preferred_time:
+        at = resolve_time(preferred_time)
+        slot = next((s for s in _grid(spec, day, None) if s.start.time() == at), None)
+        if slot is None:
+            raise SlotUnavailable(
+                f"{at:%H:%M} is not an appointment time on {day.strftime('%A %d %B')}.",
+                available_slots(spec, on=day, window=win, limit=3),
+            )
+        if slot.start - current < MIN_LEAD_TIME or not _slot_is_free(slot):
+            raise SlotUnavailable(
+                f"{slot.spoken} is not free.", available_slots(spec, on=day, window=win, limit=3)
+            )
+    else:
+        exact = available_slots(spec, on=day, window=win, limit=1)
+        if not exact or exact[0].start.date() != day:
+            alternatives = available_slots(spec, on=day, window=None, limit=3)
+            window_text = f" in the {win}" if win else ""
+            raise SlotUnavailable(
+                f"No {spec} slot is free on {day.strftime('%A %d %B')}{window_text}.",
+                alternatives,
+            )
+        slot = exact[0]
+    with _lock:
+        taken = slot.key in _bookings
+        if not taken:
+            booking = Booking(
+                confirmation_id=f"APT-{uuid.uuid4().hex[:8].upper()}",
+                patient_id=patient_id,
+                patient_name=patient_name,
+                slot=slot,
+                booked_at=current,
+            )
+            _bookings[slot.key] = booking
+    if taken:
+        # Outside the lock: available_slots takes it too, and the lock is not re-entrant.
+        raise SlotUnavailable(
+            f"{slot.spoken} was just taken.", available_slots(spec, on=day, window=win, limit=3)
+        )
+    return booking
+
+
+def bookings_for(patient_id: str) -> list[Booking]:
+    with _lock:
+        return [b for b in _bookings.values() if b.patient_id == patient_id]

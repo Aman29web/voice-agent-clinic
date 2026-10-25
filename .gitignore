@@ -1,0 +1,14 @@
+.env
+.venv/
+uv.lock
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.ogg
+*.wav
+.DS_Store
+.env.agent
+voice_livekit.egg-info/
+clinik_voice_agent.egg-info/
+build/
+dist/

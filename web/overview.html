@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it works · Clinik Care</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --ground:#F4F5FB; --surface:#FFFFFF; --surface-2:#EEF0F8;
+  --ink:#141833; --ink-2:#4B5170; --ink-3:#7F85A3;
+  --line:#DFE2EE; --accent:#3D4FD6; --accent-ink:#FFFFFF; --accent-soft:#E6E9FC;
+  --shadow:0 1px 2px rgba(20,24,51,.05),0 4px 16px rgba(20,24,51,.05);
+}
+@media (prefers-color-scheme:dark){:root{
+  --ground:#0D0F1C; --surface:#151830; --surface-2:#1C2040;
+  --ink:#E7E9F7; --ink-2:#A6ABCB; --ink-3:#737997;
+  --line:#272B4A; --accent:#8F9CFF; --accent-ink:#0D0F1C; --accent-soft:#232A5C;
+  --shadow:none;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:15px;line-height:1.6;
+  -webkit-font-smoothing:antialiased}
+
+.top{background:var(--surface);border-bottom:1px solid var(--line)}
+.top-inner{max-width:960px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);margin-right:auto}
+.mark{width:32px;height:32px;border-radius:9px;background:var(--accent);color:var(--accent-ink);
+  display:grid;place-items:center;font-weight:800;font-size:1rem}
+.brand b{font-weight:700;font-size:1rem;display:block;line-height:1.2}
+.brand small{color:var(--ink-3);font-size:.75rem;display:block;line-height:1.2}
+.top nav{display:flex;gap:4px}
+.top nav a{font-size:.85rem;font-weight:600;color:var(--ink-2);text-decoration:none;
+  padding:7px 12px;border-radius:8px;white-space:nowrap}
+.top nav a:hover{background:var(--surface-2)}
+.top nav a.on{background:var(--accent-soft);color:var(--accent)}
+
+.wrap{max-width:960px;margin:0 auto;padding:32px 20px 80px}
+h1{font-size:1.75rem;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
+.lede{color:var(--ink-2);margin:0 0 28px;max-width:62ch}
+h2{font-size:1.05rem;font-weight:700;margin:0 0 14px;letter-spacing:-.01em}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow);padding:22px;margin-bottom:18px}
+
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.steps li{display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:start}
+.num{width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);
+  display:grid;place-items:center;font-weight:800;font-size:.85rem}
+.steps b{display:block}
+.steps span{color:var(--ink-2);font-size:.92rem}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.grid .card{margin-bottom:0}
+ul.plain{margin:0;padding-left:18px;color:var(--ink-2)}
+ul.plain li + li{margin-top:6px}
+ul.plain b{color:var(--ink);font-weight:600}
+
+table{border-collapse:collapse;width:100%}
+td{padding:9px 0;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td:first-child{font-weight:700;width:120px;padding-right:14px}
+td:last-child{color:var(--ink-2)}
+.note{background:var(--surface-2);color:var(--ink-2);border-radius:10px;padding:12px 14px;
+  font-size:.9rem;margin-top:18px}
+@media (max-width:560px){
+  .wrap{padding-top:22px} h1{font-size:1.4rem} .card{padding:18px 16px}
+  .brand small{display:none} .top nav a{padding:6px 8px}
+  td:first-child{width:96px}
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="/"><span class="mark">C</span>
+    <span><b>Clinik Care</b><small>Voice outreach console</small></span></a>
+  <nav><a href="/">Console</a><a href="/overview" class="on">How it works</a></nav>
+</div></header>
+
+<main class="wrap">
+  <h1>How it works</h1>
+  <p class="lede">Riya, an AI care coordinator, calls a patient about their lab results and tries
+    to book a doctor's appointment. After the call, everything is analysed, saved in Opik, and a
+    short report can be sent by email or WhatsApp.</p>
+
+  <section class="card">
+    <h2>One call, step by step</h2>
+    <ol class="steps">
+      <li><span class="num">1</span><div><b>Start the call</b>
+        <span>You pick a patient. Patients who opted out of calls are blocked here.</span></div></li>
+      <li><span class="num">2</span><div><b>Check who is speaking</b>
+        <span>Riya confirms she is talking to the right person before sharing anything.</span></div></li>
+      <li><span class="num">3</span><div><b>Share the results</b>
+        <span>She reads the patient's HbA1c and glucose values exactly as given, with the normal
+          range.</span></div></li>
+      <li><span class="num">4</span><div><b>Book an appointment</b>
+        <span>She finds a free slot with a tool call and books it. If the slot is taken, she
+          offers other times.</span></div></li>
+      <li><span class="num">5</span><div><b>Analyse and save</b>
+        <span>When the call ends, an LLM writes a summary and outcome, and the call is sent to
+          Opik with its scores.</span></div></li>
+      <li><span class="num">6</span><div><b>Send the report</b>
+        <span>The report goes to an email address automatically, or opens in WhatsApp ready to
+          send from your own number.</span></div></li>
+    </ol>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Saved in Opik for every call</h2>
+      <ul class="plain">
+        <li><b>Details</b> — patient, models used, call duration</li>
+        <li><b>Transcript</b> — every turn of the conversation</li>
+        <li><b>Recording</b> — the call audio</li>
+        <li><b>Tool calls</b> — identity check, slot search, booking</li>
+        <li><b>Analysis</b> — outcome, booked or not, summary, next step</li>
+        <li><b>Scores</b> — medical safety and booking evaluations</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Safety rules Riya follows</h2>
+      <ul class="plain">
+        <li>No health details until identity is confirmed</li>
+        <li>Only the numbers she was given, never made up</li>
+        <li>No diagnosis or medicine advice — that is for the doctor</li>
+        <li>Urgent symptoms: tells them to get medical help and hands over to a human</li>
+        <li>Voicemail: leaves a callback message only, no results</li>
+        <li>"Don't call me again" is respected and recorded</li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:18px">
+    <h2>What runs where</h2>
+    <table>
+      <tr><td>LiveKit</td><td>Connects the call and runs the agent</td></tr>
+      <tr><td>Gemini</td><td>Riya's replies and the post-call analysis</td></tr>
+      <tr><td>Deepgram</td><td>Turns speech into text and text into speech</td></tr>
+      <tr><td>Opik</td><td>Stores each call and scores it</td></tr>
+      <tr><td>Gmail</td><td>Emails the post-call report</td></tr>
+      <tr><td>WhatsApp</td><td>Opens the report as a message, sent with one tap</td></tr>
+    </table>
+    <div class="note">This demo calls you in the browser. The same agent can dial a real phone
+      number once a SIP phone line is connected.</div>
+  </section>
+</main>
+</body>
+</html>
