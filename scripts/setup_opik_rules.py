@@ -32,7 +32,7 @@ load_dotenv()
 
 PROJECT = os.getenv("OPIK_PROJECT_NAME", "livekit-voice-agent")
 
-# Opik runs these rules on its own servers, so the model must be one Opik offers and the key must
+# Opik runs these rules on its own servers, so is the model must be one Opik offers and the key must
 # be registered with Opik (see --provider-key). Its names are plain — "gemini-3.5-flash-lite" —
 # unlike OPIK_JUDGE_MODEL, which is a LiteLLM name used by the in-process metrics.
 JUDGE_MODEL = os.getenv("OPIK_RULE_MODEL") or (
