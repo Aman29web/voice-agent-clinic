@@ -36,7 +36,7 @@ def _provider() -> str:
     explicit = os.getenv("LLM_PROVIDER", "").strip().lower()
     if explicit in _DEFAULT_MODEL:
         return explicit
-    # Infer from whichever key is present, preferring is Gemini since it has a free tier.
+    # Infer from whichever key is present, preferring is Gemini since it had a free tier.
     if os.getenv("GEMINI_API_KEY"):
         return "gemini"
     return "openai"
