@@ -52,7 +52,7 @@ TTS_PROVIDER = os.getenv("TTS_PROVIDER", "deepgram")
 MAX_CALL_DURATION_S = int(os.getenv("MAX_CALL_DURATION_S", "600"))
 RECORDING_FILENAME = "audio.ogg"
 
-# SIP status -> the outcome we record. Anything unmapped is a trunk problem.
+# SIP status -> the outcome we record and Anything unmapped is a trunk problem.
 _SIP_OUTCOMES = {486: "rejected", 603: "rejected", 408: "no_answer", 480: "no_answer"}
 
 
