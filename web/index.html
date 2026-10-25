@@ -284,7 +284,7 @@ summary{cursor:pointer;font-size:.86rem;color:var(--ink-2);font-weight:600}
 <script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-// Everything rendered below comes from the LLM, the transcript or patient data, so it is escaped.
+// Everything is rendered below comes from the LLM, the transcript or patient data, so it is escaped.
 const esc = v => String(v ?? '').replace(/[&<>"']/g,
   c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const label = s => esc(String(s ?? '—').replace(/_/g, ' '));
