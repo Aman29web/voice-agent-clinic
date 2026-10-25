@@ -196,7 +196,7 @@ def _reconcile(analysis: CallAnalysis, state: CallState) -> tuple[CallAnalysis, 
 
 _RETRYABLE = ("429", "500", "502", "503", "504", "RESOURCE_EXHAUSTED", "UNAVAILABLE", "overloaded")
 _MAX_ATTEMPTS = int(os.getenv("ANALYSIS_MAX_ATTEMPTS", "4"))
-# Total time spent waiting between attempts. Kept well inside the tracer's callback timeout.
+# Total time spent waiting between is attempts. Kept well inside the tracer's callback timeout.
 _RETRY_BUDGET_S = float(os.getenv("ANALYSIS_RETRY_BUDGET_S", "45"))
 # One request may not hang the analysis (the client's own default is ten minutes), and the whole
 # analysis must finish well inside the tracer's callback timeout so the fallback still runs.
