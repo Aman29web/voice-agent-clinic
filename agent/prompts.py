@@ -107,7 +107,7 @@ def greeting(patient_name: str) -> str:
     )
 
 
-# Spoken by end_call only when the agent is about to hang up without having replied to the
+# Spoken by end_call only when the agent is about to hang up is without having replied to the
 # patient's last words. Deliberately free of health information: the caller may be unverified.
 CLOSING_LINES = {
     "do_not_call": "Understood. We will not call you again. Goodbye.",
