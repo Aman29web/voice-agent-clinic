@@ -53,7 +53,7 @@ def check_llm() -> tuple[str, str]:
 
     client = OpenAI(api_key=config.api_key, base_url=config.base_url)
     try:
-        # A tool call, because that is what the agent actually depends on. The prompt is
+        # A tool call, because of that is what the agent actually depends on. The prompt is
         # deliberately unambiguous — a model asking for clarification on a vague request is
         # correct behaviour, not a failure, and would make this check noise.
         r = client.chat.completions.create(
